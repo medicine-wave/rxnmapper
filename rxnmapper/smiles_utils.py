@@ -36,8 +36,8 @@ def get_atom_types(smiles: str):
     if ">>" in smiles:
         precursors, products = smiles.split(">>")
 
-        precursors_mol = Chem.MolFromSmiles(precursors)
-        products_mol = Chem.MolFromSmiles(products)
+        precursors_mol = Chem.MolFromSmiles(precursors, sanitize=False)
+        products_mol = Chem.MolFromSmiles(products, sanitize=False)
 
         atom_types = [
             atom.GetAtomicNum() for atom in precursors_mol.GetAtoms()
@@ -45,7 +45,7 @@ def get_atom_types(smiles: str):
         atom_types += [atom.GetAtomicNum() for atom in products_mol.GetAtoms()]
 
     else:
-        smiles_mol = Chem.MolFromSmiles(smiles)
+        smiles_mol = Chem.MolFromSmiles(smiles, sanitize=False)
 
         atom_types = [atom.GetAtomicNum() for atom in smiles_mol.GetAtoms()]
 
@@ -70,7 +70,7 @@ def get_atom_types_smiles(smiles: str) -> List[int]:
     Returns:
         List of atom numbers for each atom in the smiles. Reports atoms in the same order they were passed in the original SMILES
     """
-    smiles_mol = Chem.MolFromSmiles(smiles)
+    smiles_mol = Chem.MolFromSmiles(smiles, sanitize=False)
 
     atom_types = [atom.GetAtomicNum() for atom in smiles_mol.GetAtoms()]
 
@@ -157,8 +157,9 @@ def is_mol_end(a: str, b: str) -> bool:
     Returns False whenever either `a` or `b` is a molecule delimeter (`.` or `>>`)"""
     no_dot = (a != ".") and (b != ".")
     no_arrow = (a != ">>") and (b != ">>")
+    no_fragment = (a != "~") and (b != "~")
 
-    return no_dot and no_arrow
+    return no_dot and no_arrow and no_fragment
 
 
 def group_with(predicate, xs: List[Any]):
@@ -223,7 +224,7 @@ def tokens_to_adjacency(tokens: List[str]) -> np.array:
 
     mol_tokens = split_into_mols(tokens)
     altered_mol_tokens = [
-        m for m in mol_tokens if "." not in set(m) and ">>" not in set(m)
+        m for m in mol_tokens if "." not in set(m) and ">>" not in set(m) and "~" not in set(m)
     ]
 
     smiles = [
@@ -232,7 +233,7 @@ def tokens_to_adjacency(tokens: List[str]) -> np.array:
 
     # Calculate adjacency matrix for reaction
     altered_smiles = [
-        s for s in smiles if s not in set([".", ">>"])
+        s for s in smiles if s not in set([".", ">>", '~'])
     ]  # Only care about atoms
     adjacency_mats = [
         get_adjacency_matrix(s) for s in altered_smiles
@@ -352,8 +353,8 @@ def generate_atom_mapped_reaction_atoms(
     """
 
     precursors, products = rxn.split(">>")
-    precursors_mol = Chem.MolFromSmiles(precursors)
-    products_mol = Chem.MolFromSmiles(products)
+    precursors_mol = Chem.MolFromSmiles(precursors, sanitize=False)
+    products_mol = Chem.MolFromSmiles(products, sanitize=False)
 
     precursors_atom_maps = []
 
